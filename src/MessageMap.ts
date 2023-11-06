@@ -24,7 +24,7 @@ export class MessageMap {
 		this._messageTimeoutAmount = settings.messageTimeoutAmount;
 		this._messageTimeoutUnit = settings.messageTimeoutUnit;
 		if (settings.persistentMessageMap) {
-			this._filehandle = fs.openSync(path.join(dataDirPath, "persistentMessageMap.db"), "rw");
+			this._filehandle = fs.openSync(path.join(dataDirPath, "persistentMessageMap.db"), "a+");
 			this._map = JSON.parse(fs.readFileSync(this._filehandle).toString("utf8") || "{}");
 			// this._persistentMap = new PersistentMessageMap(logger, path.join(dataDirPath, "persistentMessageMap.db"));
 		}
