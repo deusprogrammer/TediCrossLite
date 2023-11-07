@@ -39,7 +39,7 @@ const convertFromMap = (map: Map<string, Map<string, Set<string>>>): any => {
 /** Handles mapping between message IDs in discord and telegram, for message editing purposes */
 export class MessageMap {
 	private _map: Map<string, Map<string, Set<string>>>;
-	private _filehandle: number = 0;
+	private _db_path: string;
 	// private _persistentMap: PersistentMessageMap;
 	private _messageTimeoutAmount: number;
 	private _messageTimeoutUnit: moment.unitOfTime.DurationConstructor;
@@ -53,10 +53,14 @@ export class MessageMap {
 		this._messageTimeoutUnit = settings.messageTimeoutUnit;
 		this._logger = logger;
 		if (settings.persistentMessageMap) {
-			this._filehandle = fs.openSync(path.join(dataDirPath, "persistentMessageMap.db"), "a+");
+			this._db_path = path.join(dataDirPath, "persistentMessageMap.db");
+
+			// Create file
+			const fh = fs.openSync(this._db_path, "a");
+			fs.closeSync(fh);
 
 			// Convert dictionary into Map
-			const dict: any = JSON.parse(fs.readFileSync(this._filehandle).toString("utf8") || "{}");
+			const dict: any = JSON.parse(fs.readFileSync(this._db_path).toString("utf8") || "{}");
 			this._map = convertToMap(dict);
 			// this._persistentMap = new PersistentMessageMap(logger, path.join(dataDirPath, "persistentMessageMap.db"));
 		}
@@ -97,10 +101,10 @@ export class MessageMap {
 		}, moment.duration(this._messageTimeoutAmount, this._messageTimeoutUnit).asMilliseconds());
 
 		// If write through enabled
-		if (this._filehandle) {
+		if (this._db_path) {
 			const dict = convertFromMap(this._map);
 			this._logger.info("WRITING: " + JSON.stringify(dict, null, 5));
-			fs.writeFileSync(this._filehandle, JSON.stringify(dict, null, 5));
+			fs.writeFileSync(this._db_path, JSON.stringify(dict, null, 5));
 		}
 	}
 
