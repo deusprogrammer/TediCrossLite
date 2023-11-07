@@ -39,7 +39,7 @@ const convertFromMap = (map: Map<string, Map<string, Set<string>>>): any => {
 /** Handles mapping between message IDs in discord and telegram, for message editing purposes */
 export class MessageMap {
 	private _map: Map<string, Map<string, Set<string>>>;
-	private _db_path: string;
+	private _db_path: any = null;
 	// private _persistentMap: PersistentMessageMap;
 	private _messageTimeoutAmount: number;
 	private _messageTimeoutUnit: moment.unitOfTime.DurationConstructor;
