@@ -27,11 +27,11 @@ const convertFromMap = (map: Map<string, Map<string, Set<string>>>): any => {
 	const dict: Dictionary<any> = {};
 	for (const key of map.keys()) {
 		dict[key] = {};
+		const innerDict: Dictionary<any> = {};
 		for (const innerKey of map.get(key)?.keys() || []) {
-			const innerDict: Dictionary<any> = {};
 			innerDict[innerKey] = Array.from(map.get(key)?.get(innerKey) || []);
-			dict[key] = innerDict;
 		}
+		dict[key] = innerDict;
 	}
 	return dict;
 };
