@@ -120,16 +120,21 @@ telegramSetup(logger, tgBot as TediTelegraf, dcBot, messageMap, bridgeMap, setti
 
 process.on("exit", () => {
 	messageMap.dump();
+	process.exit(0);
 });
 process.on("SIGINT", () => {
 	messageMap.dump();
+	process.exit(0);
 });
-process.on("SIGINT", () => {
+process.on("SIGUSR1", () => {
 	messageMap.dump();
+	process.exit(0);
 });
 process.on("SIGUSR2", () => {
 	messageMap.dump();
+	process.exit(0);
 });
 process.on("uncaughtException", () => {
 	messageMap.dump();
+	process.exit(0);
 });
