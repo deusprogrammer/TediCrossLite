@@ -4,10 +4,37 @@ import { Settings } from "./settings/Settings";
 import { Logger } from "./Logger";
 import path from "path";
 import fs from "fs";
+import { Dictionary } from "underscore";
 
 type Direction = "d2t" | "t2d";
 
 const MAX_32_BIT = 0x7fffffff;
+
+const convertToMap = (dictionary: any): Map<string, Map<string, Set<string>>> => {
+	const map = new Map<string, Map<string, Set<string>>>();
+	Object.keys(dictionary).forEach(key => {
+		const inner = dictionary[key];
+		map.set(key, new Map<string, Set<string>>());
+		Object.keys(inner).forEach(innerKey => {
+			const set = new Set<string>(inner[innerKey]);
+			map.get(key)?.set(innerKey, set);
+		});
+	});
+	return map;
+};
+
+const convertFromMap = (map: Map<string, Map<string, Set<string>>>): any => {
+	const dict: Dictionary<any> = {};
+	for (const key of map.keys()) {
+		dict[key] = {};
+		for (const innerKey of map.get(key)?.keys() || []) {
+			const innerDict: Dictionary<any> = {};
+			innerDict[innerKey] = Array.from(map.get(key)?.get(innerKey) || []);
+			dict[key] = innerDict;
+		}
+	}
+	return dict;
+};
 
 /** Handles mapping between message IDs in discord and telegram, for message editing purposes */
 export class MessageMap {
@@ -16,6 +43,7 @@ export class MessageMap {
 	// private _persistentMap: PersistentMessageMap;
 	private _messageTimeoutAmount: number;
 	private _messageTimeoutUnit: moment.unitOfTime.DurationConstructor;
+	private _logger: Logger;
 
 	constructor(settings: Settings, logger: Logger, dataDirPath: string) {
 		/** The map itself */
@@ -23,19 +51,13 @@ export class MessageMap {
 		// this._persistentMap = <PersistentMessageMap>{};
 		this._messageTimeoutAmount = settings.messageTimeoutAmount;
 		this._messageTimeoutUnit = settings.messageTimeoutUnit;
+		this._logger = logger;
 		if (settings.persistentMessageMap) {
 			this._filehandle = fs.openSync(path.join(dataDirPath, "persistentMessageMap.db"), "a+");
 
 			// Convert dictionary into Map
-			const tempMap: any = JSON.parse(fs.readFileSync(this._filehandle).toString("utf8") || "{}");
-			Object.keys(tempMap).forEach(key => {
-				const inner = tempMap[key];
-				this._map.set(key, new Map<string, Set<string>>());
-				Object.keys(inner).forEach(innerKey => {
-					const set = new Set<string>(inner[innerKey]);
-					this._map.get(key)?.set(innerKey, set);
-				});
-			});
+			const dict: any = JSON.parse(fs.readFileSync(this._filehandle).toString("utf8") || "{}");
+			this._map = convertToMap(dict);
 			// this._persistentMap = new PersistentMessageMap(logger, path.join(dataDirPath, "persistentMessageMap.db"));
 		}
 	}
@@ -76,7 +98,9 @@ export class MessageMap {
 
 		// If write through enabled
 		if (this._filehandle) {
-			fs.writeFileSync(this._filehandle, JSON.stringify(this._map, null, 5));
+			const dict = convertFromMap(this._map);
+			this._logger.info("WRITING: " + JSON.stringify(dict, null, 5));
+			fs.writeFileSync(this._filehandle, JSON.stringify(dict, null, 5));
 		}
 	}
 
