@@ -25,7 +25,17 @@ export class MessageMap {
 		this._messageTimeoutUnit = settings.messageTimeoutUnit;
 		if (settings.persistentMessageMap) {
 			this._filehandle = fs.openSync(path.join(dataDirPath, "persistentMessageMap.db"), "a+");
-			this._map = JSON.parse(fs.readFileSync(this._filehandle).toString("utf8") || "{}");
+
+			// Convert dictionary into Map
+			const tempMap: any = JSON.parse(fs.readFileSync(this._filehandle).toString("utf8") || "{}");
+			Object.keys(tempMap).forEach(key => {
+				const inner = tempMap[key];
+				this._map.set(key, new Map<string, Set<string>>());
+				Object.keys(inner).forEach(innerKey => {
+					const set = new Set<string>(inner[innerKey]);
+					this._map.get(key)?.set(innerKey, set);
+				});
+			});
 			// this._persistentMap = new PersistentMessageMap(logger, path.join(dataDirPath, "persistentMessageMap.db"));
 		}
 	}
