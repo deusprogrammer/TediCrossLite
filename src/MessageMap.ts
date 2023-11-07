@@ -19,7 +19,7 @@ export class MessageMap {
 
 	constructor(settings: Settings, logger: Logger, dataDirPath: string) {
 		/** The map itself */
-		this._map = new Map();
+		this._map = new Map<string, Map<string, Set<string>>>();
 		// this._persistentMap = <PersistentMessageMap>{};
 		this._messageTimeoutAmount = settings.messageTimeoutAmount;
 		this._messageTimeoutUnit = settings.messageTimeoutUnit;
