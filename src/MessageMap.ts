@@ -99,11 +99,12 @@ export class MessageMap {
 				keyToIdsMap.delete(key);
 			}
 		}, moment.duration(this._messageTimeoutAmount, this._messageTimeoutUnit).asMilliseconds());
+	}
 
+	dump() {
 		// If write through enabled
 		if (this._db_path) {
 			const dict = convertFromMap(this._map);
-			this._logger.info("WRITING: " + JSON.stringify(dict, null, 5));
 			fs.writeFileSync(this._db_path, JSON.stringify(dict, null, 5));
 		}
 	}

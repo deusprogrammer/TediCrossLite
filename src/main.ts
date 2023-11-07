@@ -117,3 +117,19 @@ const bridgeMap = new BridgeMap(settings.bridges.map((bridgeSettings: BridgeProp
 
 discordSetup(logger, dcBot, tgBot, messageMap, bridgeMap, settings, args.dataDir);
 telegramSetup(logger, tgBot as TediTelegraf, dcBot, messageMap, bridgeMap, settings);
+
+process.on("exit", () => {
+	messageMap.dump();
+});
+process.on("SIGINT", () => {
+	messageMap.dump();
+});
+process.on("SIGINT", () => {
+	messageMap.dump();
+});
+process.on("SIGUSR2", () => {
+	messageMap.dump();
+});
+process.on("uncaughtException", () => {
+	messageMap.dump();
+});
