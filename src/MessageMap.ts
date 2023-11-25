@@ -4,7 +4,6 @@ import { Settings } from "./settings/Settings";
 import { Logger } from "./Logger";
 import path from "path";
 import fs from "fs";
-import { Dictionary } from "underscore";
 
 type Direction = "d2t" | "t2d";
 
@@ -23,23 +22,52 @@ const convertToMap = (dictionary: any): Map<string, Map<string, Set<string>>> =>
 	return map;
 };
 
-const convertFromMap = (map: Map<string, Map<string, Set<string>>>): any => {
-	const dict: Dictionary<any> = {};
-	for (const key of map.keys()) {
-		dict[key] = {};
-		const innerDict: Dictionary<any> = {};
-		for (const innerKey of map.get(key)?.keys() || []) {
-			innerDict[innerKey] = Array.from(map.get(key)?.get(innerKey) || []);
+const digRow = (map: any, keys: string[], value: string): any => {
+	let curr = map;
+	keys.forEach(key => {
+		if (!curr[key]) {
+			curr[key] = {};
 		}
-		dict[key] = innerDict;
+		curr = curr[key];
+	});
+
+	const [key1, key2] = keys;
+	if (!(map[key1][key2] instanceof Array)) {
+		map[key1][key2] = [];
 	}
-	return dict;
+	map[key1][key2].push(value);
+};
+
+const loadFile = (filename: string): any => {
+	const map: any = {};
+	const fileContent: string = fs.readFileSync(filename, "utf-8");
+
+	fileContent.split("\n").forEach(line => {
+		const cols = line.split(",");
+		if (cols.length <= 4) {
+			return;
+		}
+		let secondKey = "";
+		let value = "";
+		if (cols[2] === ">") {
+			secondKey = `t2d ${cols[1].trim()}`;
+			value = cols[3].trim();
+		} else if (cols[2] === "<") {
+			secondKey = `d2t ${cols[3].trim()}`;
+			value = cols[1].trim();
+		}
+
+		digRow(map, [cols[0], secondKey], value);
+	});
+
+	return map;
 };
 
 /** Handles mapping between message IDs in discord and telegram, for message editing purposes */
 export class MessageMap {
 	private _map: Map<string, Map<string, Set<string>>>;
 	private _db_path: any = null;
+	private _fh: number = 0;
 	// private _persistentMap: PersistentMessageMap;
 	private _messageTimeoutAmount: number;
 	private _messageTimeoutUnit: moment.unitOfTime.DurationConstructor;
@@ -56,12 +84,12 @@ export class MessageMap {
 			this._db_path = path.join(dataDirPath, "persistentMessageMap.db");
 
 			// Create file
-			const fh = fs.openSync(this._db_path, "a");
-			fs.closeSync(fh);
+			this._fh = fs.openSync(this._db_path, "a");
 
 			// Convert dictionary into Map
-			const dict: any = JSON.parse(fs.readFileSync(this._db_path).toString("utf8") || "{}");
+			const dict: any = loadFile(this._db_path).toString("utf8");
 			this._map = convertToMap(dict);
+			console.log(JSON.stringify(dict, null, 5));
 			// this._persistentMap = new PersistentMessageMap(logger, path.join(dataDirPath, "persistentMessageMap.db"));
 		}
 	}
@@ -93,20 +121,30 @@ export class MessageMap {
 		// Shove the new ID into it
 		toIds.add(toId);
 
+		let arrow: string = "";
+		let from: string = "";
+		let to: string = "";
+		if (direction === "t2d") {
+			arrow = ">";
+			from = fromId;
+			to = toId;
+		} else if (direction === "d2t") {
+			arrow = "<";
+			from = toId;
+			to = fromId;
+		} else {
+			this._logger.error("Unable to determine direction");
+		}
+
+		// Write new line to csv
+		fs.writeFileSync(this._fh, `${bridge.name},${from},${arrow},${to}\n`);
+
 		// Start a timeout removing it again after a configured amount of time. Default is 24 hours
 		safeTimeout(() => {
 			if (keyToIdsMap) {
 				keyToIdsMap.delete(key);
 			}
 		}, moment.duration(this._messageTimeoutAmount, this._messageTimeoutUnit).asMilliseconds());
-	}
-
-	dump() {
-		// If write through enabled
-		if (this._db_path) {
-			const dict = convertFromMap(this._map);
-			fs.writeFileSync(this._db_path, JSON.stringify(dict, null, 5));
-		}
 	}
 
 	/**

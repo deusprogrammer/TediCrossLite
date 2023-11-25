@@ -117,33 +117,3 @@ const bridgeMap = new BridgeMap(settings.bridges.map((bridgeSettings: BridgeProp
 
 discordSetup(logger, dcBot, tgBot, messageMap, bridgeMap, settings, args.dataDir);
 telegramSetup(logger, tgBot as TediTelegraf, dcBot, messageMap, bridgeMap, settings);
-
-// Dump message map every 10 minutes (or based on what is in DUMP_TIMEOUT environment variable)
-setTimeout(
-	() => {
-		messageMap.dump();
-	},
-	parseInt(process.env.DUMP_TIMEOUT || "") || 30 * 60 * 1000
-);
-
-// Dump map on exit or crash
-process.on("exit", () => {
-	messageMap.dump();
-	process.exit(0);
-});
-process.on("SIGINT", () => {
-	messageMap.dump();
-	process.exit(0);
-});
-process.on("SIGUSR1", () => {
-	messageMap.dump();
-	process.exit(0);
-});
-process.on("SIGUSR2", () => {
-	messageMap.dump();
-	process.exit(0);
-});
-process.on("uncaughtException", () => {
-	messageMap.dump();
-	process.exit(0);
-});
