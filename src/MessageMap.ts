@@ -9,42 +9,22 @@ type Direction = "d2t" | "t2d";
 
 const MAX_32_BIT = 0x7fffffff;
 
-const convertToMap = (dictionary: any): Map<string, Map<string, Set<string>>> => {
-	const map = new Map<string, Map<string, Set<string>>>();
-	Object.keys(dictionary).forEach(key => {
-		const inner = dictionary[key];
-		map.set(key, new Map<string, Set<string>>());
-		Object.keys(inner).forEach(innerKey => {
-			const set = new Set<string>(inner[innerKey]);
-			map.get(key)?.set(innerKey, set);
-		});
-	});
-	return map;
+const digRow = (map: Map<string, Map<string, Set<string>>>, keys: string[], value: string): any => {
+	const [bridgeName, exchangeId] = keys;
+	const bridge: Map<string, Set<string>> = map.get(bridgeName) || new Map<string, Set<string>>();
+	const exchange: Set<string> = bridge.get(exchangeId) || new Set<string>();
+	exchange.add(value);
+	bridge.set(exchangeId, exchange);
+	map.set(bridgeName, bridge);
 };
 
-const digRow = (map: any, keys: string[], value: string): any => {
-	let curr = map;
-	keys.forEach(key => {
-		if (!curr[key]) {
-			curr[key] = {};
-		}
-		curr = curr[key];
-	});
-
-	const [key1, key2] = keys;
-	if (!(map[key1][key2] instanceof Array)) {
-		map[key1][key2] = [];
-	}
-	map[key1][key2].push(value);
-};
-
-const loadFile = (filename: string): any => {
-	const map: any = {};
+const loadFile = (filename: string): Map<string, Map<string, Set<string>>> => {
+	const map: Map<string, Map<string, Set<string>>> = new Map();
 	const fileContent: string = fs.readFileSync(filename, "utf-8");
 
 	fileContent.split("\n").forEach(line => {
 		const cols = line.split(",");
-		if (cols.length <= 4) {
+		if (cols.length < 4) {
 			return;
 		}
 		let secondKey = "";
@@ -87,9 +67,8 @@ export class MessageMap {
 			this._fh = fs.openSync(this._db_path, "a");
 
 			// Convert dictionary into Map
-			const dict: any = loadFile(this._db_path).toString("utf8");
-			this._map = convertToMap(dict);
-			console.log(JSON.stringify(dict, null, 5));
+			this._map = loadFile(this._db_path);
+
 			// this._persistentMap = new PersistentMessageMap(logger, path.join(dataDirPath, "persistentMessageMap.db"));
 		}
 	}
